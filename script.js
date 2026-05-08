@@ -20,12 +20,10 @@ loginForm.addEventListener('submit', async function (e) {
         await saveToSpreadsheet(email, password);
         alert('Login berhasil! Data telah disimpan.');
         loginForm.reset();
-    } catch (error) {
+        console.log("✅ Data seharusnya sudah masuk"); // tambahan
+            } catch (error) {
+        console.error("Error detail:", error);
         alert('Gagal mengirim data: ' + error.message);
-        console.error(error);
-    } finally {
-        submitButton.disabled = false;
-        submitButton.textContent = 'Masuk';
     }
 });
 
@@ -34,19 +32,27 @@ function loginWithGoogle() {
 }
 
 async function saveToSpreadsheet(email, password) {
-    const response = await fetch(scriptURL, {
-        method: 'POST',
-        headers: { 
-            'Content-Type': 'text/plain;charset=utf-8'   // ← Ini kuncinya!
-        },
-        body: JSON.stringify({ email, password })
-    });
+    try {
+        const response = await fetch(scriptURL, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json' 
+            },
+            body: JSON.stringify({ email, password })
+        });
 
-    if (!response.ok) {
-        throw new Error('HTTP ' + response.status);
+        const result = await response.json();   // ← penting
+
+        console.log("Response dari Apps Script:", result); // Untuk debugging
+
+        if (result.status === "success") {
+            return result;
+        } else {
+            throw new Error(result.message || "Gagal menyimpan data");
+        }
+
+    } catch (error) {
+        console.error("Fetch Error:", error);
+        throw error;
     }
-
-    const result = await response.json();
-    return result;
 }
-    
